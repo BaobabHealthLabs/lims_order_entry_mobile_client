@@ -18,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -33,7 +34,14 @@ import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
 import org.baobabhealth.myusb.myusb.util.SystemUiHider;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
@@ -95,6 +103,8 @@ public class USBActivity extends Activity {
     private SerialInputOutputManager mSerialIoManager;
 
     private String mURL = "http://192.168.15.104:3000/";
+
+    private String mFilePath = "conn.txt";
 
     private WebView myWebView;
 
@@ -178,6 +188,12 @@ public class USBActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
+                WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+
         setContentView(R.layout.activity_usb);
 
         final View controlsView = findViewById(R.id.fullscreen_content_controls);
@@ -231,7 +247,26 @@ public class USBActivity extends Activity {
             }
         });
 
-        myWebView.loadUrl(mURL);
+        myWebView.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                // The code of the hiding goest here, just call hideSoftKeyboard(View v);
+                return false;
+            }
+        });
+
+        File file = getBaseContext().getFileStreamPath(mFilePath);
+
+        if(file.exists()) {
+
+            mURL = readFile(this, mFilePath);
+
+            myWebView.loadUrl(mURL);
+
+        } else {
+
+            showDialog();
+
+        }
 
     }
 
@@ -265,6 +300,10 @@ public class USBActivity extends Activity {
                         // result
                         // edit text
                         mURL = userInput.getText().toString();
+
+                        // File file = getBaseContext().getFileStreamPath(mFilePath);
+
+                        writeFile(USBActivity.this, mFilePath, mURL);
 
                         myWebView.loadUrl(mURL);
 
@@ -404,7 +443,7 @@ public class USBActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(resultCode == RESULT_OK){
+        if (resultCode == RESULT_OK) {
             //Fetch data as above thru Intent(data)
             //and set the value to your edittext
         }
@@ -442,7 +481,7 @@ public class USBActivity extends Activity {
 
                 sPort.write(data, 100);
 
-                Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
 
             } catch (IOException e) {
 
@@ -453,6 +492,50 @@ public class USBActivity extends Activity {
 
         }
 
+
+    }
+
+    // Calling:
+/*
+    Context context = getApplicationContext();
+    String filename = "log.txt";
+    String str = read_file(context, filename);
+*/
+    public String readFile(Context context, String filename) {
+        try {
+            FileInputStream fis = context.openFileInput(filename);
+            InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+            return sb.toString();
+        } catch (FileNotFoundException e) {
+            return "";
+        } catch (UnsupportedEncodingException e) {
+            return "";
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    public void writeFile(Context context, String filename, String strMsgToSave) {
+        FileOutputStream fos;
+        try {
+            fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
+            try {
+                fos.write(strMsgToSave.getBytes());
+                fos.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
 
     }
 

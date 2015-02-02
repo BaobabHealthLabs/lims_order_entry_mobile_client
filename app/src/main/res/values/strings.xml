@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">MyUSB</string>
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
-    <string name="app_title">USB Serial Example</string>
+    <string name="app_name">LIMS Mobile</string>
+    <string name="dummy_button">LIMS Mobile Button</string>
+    <string name="dummy_content">LIMS Mobile</string>
+    <string name="app_title">LIMS Mobile</string>
     <string name="refreshing">Refreshing...</string>
     <string name="action_settings">Action Settings</string>
     <string name="url">Enter URL</string>
