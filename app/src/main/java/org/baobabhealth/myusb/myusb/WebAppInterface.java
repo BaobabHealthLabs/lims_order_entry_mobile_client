@@ -13,7 +13,11 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.webkit.JavascriptInterface;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -35,6 +39,8 @@ public class WebAppInterface {
 
     private Handler mHandler;
     private int mInterval = 30000;
+
+    public String mString = "";
 
     /**
      * Instantiate the interface and set the context
@@ -191,6 +197,51 @@ public class WebAppInterface {
         String address = info.getMacAddress();
 
         return address;
+    }
+
+    @JavascriptInterface
+    public void showInputDialog(String msg) {
+
+        // get prompts.xml view
+        LayoutInflater li = LayoutInflater.from(mContext);
+        View promptsView = li.inflate(R.layout.prompts, null);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                mContext);
+
+        // set prompts.xml to alertdialog builder
+        alertDialogBuilder.setView(promptsView);
+
+        final TextView textLabel = (TextView) promptsView.findViewById(R.id.textView1);
+        textLabel.setText(msg);
+
+        final EditText userInput = (EditText) promptsView
+                .findViewById(R.id.editTextDialogUserInput);
+
+        // set dialog message
+        alertDialogBuilder
+                .setCancelable(false)
+                .setPositiveButton("Done", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                        mString = userInput.getText().toString();
+
+
+                    }
+                })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                                dialog.cancel();
+                            }
+                        });
+
+        // create alert dialog
+        AlertDialog alertDialog = alertDialogBuilder.create();
+
+        // show it
+        alertDialog.show();
     }
 
 

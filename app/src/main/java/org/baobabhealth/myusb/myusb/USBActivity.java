@@ -26,6 +26,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hoho.android.usbserial.driver.UsbSerialPort;
@@ -470,7 +471,7 @@ public class USBActivity extends Activity {
                             "A20,63,0,3,1,1,N,\"" + datetime + "\"\n" +
                             "A20,90,0,3,1,1,N,\"" + ward + "\"\n" +
                             "A20,115,0,3,1,1,R,\"" + test + "\"\n" +
-                            "B270,65,0,1,2,4,42,B,\"" + barcode + "\"\n" +
+                            "B220,65,0,1,2,4,42,B,\"" + barcode + "\"\n" +
                             "P2\n";
 
             byte[] data;
