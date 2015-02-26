@@ -41,6 +41,7 @@ public class WebAppInterface {
     private int mInterval = 30000;
 
     public String mString = "";
+    public String mAction = "";
 
     /**
      * Instantiate the interface and set the context
@@ -242,6 +243,37 @@ public class WebAppInterface {
 
         // show it
         alertDialog.show();
+    }
+
+    @JavascriptInterface
+    public void confirmAction(String msg, String action) {
+
+        mAction = action;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+        builder.setCancelable(true);
+        builder.setTitle(msg);
+        builder.setInverseBackgroundForced(true);
+        builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                mParent.runJSAction(mAction);
+
+                dialog.dismiss();
+
+            }
+        });
+        builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog alert = builder.create();
+        alert.show();
+
     }
 
 

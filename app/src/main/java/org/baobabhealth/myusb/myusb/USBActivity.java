@@ -107,7 +107,7 @@ public class USBActivity extends Activity {
 
     private String mFilePath = "conn.txt";
 
-    private WebView myWebView;
+    public WebView myWebView;
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
 
@@ -486,7 +486,7 @@ public class USBActivity extends Activity {
 
             } catch (IOException e) {
 
-                Toast.makeText(USBActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+                // Toast.makeText(USBActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
 
                 Log.d(this.getClass().getSimpleName(), "Timeout error!");
             }
@@ -537,6 +537,12 @@ public class USBActivity extends Activity {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+
+    }
+
+    public void runJSAction(String action){
+
+        myWebView.loadUrl("javascript:" + action);
 
     }
 
