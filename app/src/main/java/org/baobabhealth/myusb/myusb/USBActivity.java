@@ -26,7 +26,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hoho.android.usbserial.driver.UsbSerialPort;
@@ -257,7 +256,7 @@ public class USBActivity extends Activity {
 
         File file = getBaseContext().getFileStreamPath(mFilePath);
 
-        if(file.exists()) {
+        if (file.exists()) {
 
             mURL = readFile(this, mFilePath);
 
@@ -539,13 +538,13 @@ public class USBActivity extends Activity {
 
     }
 
-    public void runJSAction(String action){
+    public void runJSAction(String action) {
 
         myWebView.loadUrl("javascript:" + action);
 
     }
 
-    public void printResultBarcode(String messageDatetime, String test, String result){
+    public void printResultBarcode(String testsTBD) {
 
         if (sPort == null) {
 
@@ -556,17 +555,38 @@ public class USBActivity extends Activity {
 
         if (sPort != null) {
 
-            String command =
-                    "N\n" +
-                            "q456\n" +
-                            "Q151,025\n" +
-                            "ZT\n" +
-                            "A20,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
-                            "A20,35,0,3,1,1,R,\"Test:\"\n" +
-                            "A40,63,0,3,1,1,N,\"" + test + "\"\n" +
-                            "A20,91,0,3,1,1,R,\"Result:\"\n" +
-                            "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
-                            "P1\n";
+            String[] results = testsTBD.split(";", -1);
+
+            String command = "";
+
+            for (int i = 0; i < results.length; i++) {
+
+                String[] tokens = results[i].split("\\|", -1);
+
+                if (tokens.length < 2) {
+
+                    break;
+
+                }
+
+                String messageDatetime = tokens[0];
+                String test = tokens[1];
+                String result = tokens[2];
+
+                command +=
+                        "\nN\n" +
+                                "q456\n" +
+                                "Q151,025\n" +
+                                "ZT\n" +
+                                "A20,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
+                                "A20,35,0,3,1,1,R,\"Test:\"\n" +
+                                "A40,63,0,3,1,1,N,\"" + test + "\"\n" +
+                                "A20,91,0,3,1,1,R,\"Result:\"\n" +
+                                "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
+                                "P1\n";
+
+
+            }
 
             byte[] data;
 
@@ -574,7 +594,7 @@ public class USBActivity extends Activity {
 
             try {
 
-                sPort.write(data, 100);
+                sPort.write(data, data.length + 100);
 
                 // Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
 
