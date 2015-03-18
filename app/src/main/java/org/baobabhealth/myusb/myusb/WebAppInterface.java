@@ -276,5 +276,10 @@ public class WebAppInterface {
 
     }
 
+    @JavascriptInterface
+    public void printResultBarcode(String messageDatetime, String test, String result) {
+        mParent.printResultBarcode(messageDatetime, test, result);
+    }
+
 
 }

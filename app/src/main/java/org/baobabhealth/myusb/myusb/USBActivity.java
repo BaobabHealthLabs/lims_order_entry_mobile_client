@@ -493,7 +493,6 @@ public class USBActivity extends Activity {
 
         }
 
-
     }
 
     // Calling:
@@ -543,6 +542,50 @@ public class USBActivity extends Activity {
     public void runJSAction(String action){
 
         myWebView.loadUrl("javascript:" + action);
+
+    }
+
+    public void printResultBarcode(String messageDatetime, String test, String result){
+
+        if (sPort == null) {
+
+            DeviceListActivity.show(this);
+
+        }
+
+
+        if (sPort != null) {
+
+            String command =
+                    "N\n" +
+                            "q456\n" +
+                            "Q151,025\n" +
+                            "ZT\n" +
+                            "A20,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
+                            "A20,35,0,3,1,1,R,\"Test:\"\n" +
+                            "A40,63,0,3,1,1,N,\"" + test + "\"\n" +
+                            "A20,91,0,3,1,1,R,\"Result:\"\n" +
+                            "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
+                            "P1\n";
+
+            byte[] data;
+
+            data = command.getBytes();
+
+            try {
+
+                sPort.write(data, 100);
+
+                // Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
+
+            } catch (IOException e) {
+
+                // Toast.makeText(USBActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+
+                Log.d(this.getClass().getSimpleName(), "Timeout error!");
+            }
+
+        }
 
     }
 
