@@ -6,11 +6,15 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.res.AssetManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -277,8 +281,52 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
-    public void printResultBarcode(String testsTBD) {
-        mParent.printResultBarcode(testsTBD);
+    public void printResultBarcode(String testsTBD, String identifier, String name) {
+        mParent.printResultBarcode(testsTBD, identifier, name);
+    }
+
+    @JavascriptInterface
+    public String batteryStatus() {
+
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = mContext.registerReceiver(null, ifilter);
+
+        // Are we charging / charged?
+        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL;
+
+        // How are we charging?
+        int chargePlug = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        boolean usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
+        boolean acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
+
+        int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+        float batteryPct = level / (float)scale;
+
+        String bStatus = "isCharging:" + isCharging + "|usbCharge:" + usbCharge + "|chargePlug:" +
+                chargePlug + "|acCharge:" + acCharge + "|batteryPct:" + batteryPct;
+
+        return bStatus;
+
+    }
+
+    @JavascriptInterface
+    public String connectivityStatus() {
+        ConnectivityManager cm =
+                (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+        boolean isWiFi = activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
+
+        String bStatus = "isConnected:" + isConnected + "|isWiFi:" + isWiFi;
+
+        return bStatus;
     }
 
 

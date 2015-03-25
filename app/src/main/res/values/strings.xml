@@ -8,5 +8,8 @@
     <string name="refreshing">Refreshing...</string>
     <string name="action_settings">Action Settings</string>
     <string name="url">Enter URL</string>
+    <string name="title_activity_shortcut">shortcut</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="title_activity_remove_shortcut">RemoveShortcut</string>
 
 </resources>

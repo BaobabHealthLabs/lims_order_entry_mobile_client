@@ -457,6 +457,20 @@ public class USBActivity extends Activity {
 
         }
 
+        /*
+        "\nN\n" +
+                                "q456\n" +
+                                "Q151,025\n" +
+                                "ZT\n" +
+                                "A20,3,0,3,1,1,N,\"" + identifier + "\"\n" +
+                                "A221,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
+                                "A20,33,0,3,1,1,N,\"" + name + "\"\n" +
+                                "A20,60,0,3,1,1,R,\"Test:\"\n" +
+                                "A110,60,0,3,1,1,N,\"" + test + "\"\n" +
+                                "A20,91,0,3,1,1,R,\"Result:\"\n" +
+                                "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
+                                "P1\n";
+         */
 
         if (sPort != null) {
 
@@ -467,9 +481,9 @@ public class USBActivity extends Activity {
                             "ZT\n" +
                             "A20,3,0,3,1,1,N,\"" + name + "\"\n" +
                             "A20,35,0,3,1,1,N,\"" + npid + "\"\n" +
-                            "A20,63,0,3,1,1,N,\"" + datetime + "\"\n" +
+                            "A221,35,0,3,1,1,N,\"" + datetime + "\"\n" +
                             "A20,90,0,3,1,1,N,\"" + ward + "\"\n" +
-                            "A20,115,0,3,1,1,R,\"" + test + "\"\n" +
+                            "A20,105,0,3,1,1,R,\"" + test + "\"\n" +
                             "B220,65,0,1,2,4,42,B,\"" + barcode + "\"\n" +
                             "P2\n";
 
@@ -544,7 +558,7 @@ public class USBActivity extends Activity {
 
     }
 
-    public void printResultBarcode(String testsTBD) {
+    public void printResultBarcode(String testsTBD, String identifier, String name) {
 
         if (sPort == null) {
 
@@ -578,9 +592,11 @@ public class USBActivity extends Activity {
                                 "q456\n" +
                                 "Q151,025\n" +
                                 "ZT\n" +
-                                "A20,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
-                                "A20,35,0,3,1,1,R,\"Test:\"\n" +
-                                "A40,63,0,3,1,1,N,\"" + test + "\"\n" +
+                                "A20,3,0,3,1,1,N,\"" + identifier + "\"\n" +
+                                "A221,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
+                                "A20,33,0,3,1,1,N,\"" + name + "\"\n" +
+                                "A20,60,0,3,1,1,R,\"Test:\"\n" +
+                                "A110,60,0,3,1,1,N,\"" + test + "\"\n" +
                                 "A20,91,0,3,1,1,R,\"Result:\"\n" +
                                 "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
                                 "P1\n";
