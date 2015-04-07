@@ -12,6 +12,8 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -24,6 +26,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -269,6 +272,17 @@ public class USBActivity extends Activity {
         if (file.exists()) {
 
             mURL = readFile(this, mFilePath);
+
+            myWebView.getSettings().setAppCacheMaxSize( 5 * 1024 * 1024 ); // 5MB
+            myWebView.getSettings().setAppCachePath( getApplicationContext().getCacheDir().getAbsolutePath() );
+            myWebView.getSettings().setAllowFileAccess( true );
+            myWebView.getSettings().setAppCacheEnabled( true );
+            myWebView.getSettings().setJavaScriptEnabled( true );
+            myWebView.getSettings().setCacheMode( WebSettings.LOAD_DEFAULT ); // load online by default
+
+            if ( !isNetworkAvailable() ) { // loading offline
+                myWebView.getSettings().setCacheMode( WebSettings.LOAD_CACHE_ONLY );    // LOAD_CACHE_ELSE_NETWORK );
+            }
 
             myWebView.loadUrl(mURL);
 
@@ -692,6 +706,12 @@ public class USBActivity extends Activity {
 
         }
 
+    }
+
+    public boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService( CONNECTIVITY_SERVICE );
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
 }

@@ -336,5 +336,11 @@ public class WebAppInterface {
         return bStatus;
     }
 
+    @JavascriptInterface
+    public boolean isNetworkAvailable() {
+        boolean bStatus = mParent.isNetworkAvailable();
+
+        return bStatus;
+    }
 
 }
