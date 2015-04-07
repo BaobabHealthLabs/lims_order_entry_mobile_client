@@ -12,6 +12,8 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -44,6 +46,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -106,7 +109,14 @@ public class USBActivity extends Activity {
 
     private String mFilePath = "conn.txt";
 
+    private String mWifiFilePath = "wifi-conn.txt";
+
     public WebView myWebView;
+
+    public WifiManager wifiManager;
+
+    public String networkSSID;
+    public String networkPass;
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
 
@@ -486,6 +496,65 @@ public class USBActivity extends Activity {
                             "A20,105,0,3,1,1,R,\"" + test + "\"\n" +
                             "B220,65,0,1,2,4,42,B,\"" + barcode + "\"\n" +
                             "P2\n";
+
+            byte[] data;
+
+            data = command.getBytes();
+
+            try {
+
+                sPort.write(data, 100);
+
+                // Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
+
+            } catch (IOException e) {
+
+                // Toast.makeText(USBActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+
+                Log.d(this.getClass().getSimpleName(), "Timeout error!");
+            }
+
+        }
+
+    }
+
+    public void printBarcode(String name, String npid, String datetime, String ward, String test, String barcode, int count) {
+
+        if (sPort == null) {
+
+            DeviceListActivity.show(this);
+
+        }
+
+        /*
+        "\nN\n" +
+                                "q456\n" +
+                                "Q151,025\n" +
+                                "ZT\n" +
+                                "A20,3,0,3,1,1,N,\"" + identifier + "\"\n" +
+                                "A221,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
+                                "A20,33,0,3,1,1,N,\"" + name + "\"\n" +
+                                "A20,60,0,3,1,1,R,\"Test:\"\n" +
+                                "A110,60,0,3,1,1,N,\"" + test + "\"\n" +
+                                "A20,91,0,3,1,1,R,\"Result:\"\n" +
+                                "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
+                                "P1\n";
+         */
+
+        if (sPort != null) {
+
+            String command =
+                    "N\n" +
+                            "q456\n" +
+                            "Q151,025\n" +
+                            "ZT\n" +
+                            "A20,3,0,3,1,1,N,\"" + name + "\"\n" +
+                            "A20,35,0,3,1,1,N,\"" + npid + "\"\n" +
+                            "A221,35,0,3,1,1,N,\"" + datetime + "\"\n" +
+                            "A20,90,0,3,1,1,N,\"" + ward + "\"\n" +
+                            "A20,105,0,3,1,1,R,\"" + test + "\"\n" +
+                            "B220,65,0,1,2,4,42,B,\"" + barcode + "\"\n" +
+                            "P" + count + "\n";
 
             byte[] data;
 

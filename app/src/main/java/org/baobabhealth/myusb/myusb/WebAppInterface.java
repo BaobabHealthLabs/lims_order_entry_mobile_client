@@ -137,6 +137,11 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public void printBarcode(String name, String npid, String datetime, String ward, String test, String barcode, int count) {
+        mParent.printBarcode(name, npid, datetime, ward, test, barcode, count);
+    }
+
+    @JavascriptInterface
     public void printBarcode(String name, String npid, String datetime, String ward, String test, String barcode) {
         mParent.printBarcode(name, npid, datetime, ward, test, barcode);
     }
@@ -317,6 +322,8 @@ public class WebAppInterface {
     public String connectivityStatus() {
         ConnectivityManager cm =
                 (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+
 
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         boolean isConnected = activeNetwork != null &&
