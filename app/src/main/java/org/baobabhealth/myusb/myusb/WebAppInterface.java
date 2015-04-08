@@ -320,18 +320,8 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public String connectivityStatus() {
-        ConnectivityManager cm =
-                (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
 
-
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        boolean isConnected = activeNetwork != null &&
-                activeNetwork.isConnectedOrConnecting();
-
-        boolean isWiFi = activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
-
-        String bStatus = "isConnected:" + isConnected + "|isWiFi:" + isWiFi;
+        String bStatus = "";
 
         return bStatus;
     }

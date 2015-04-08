@@ -12,9 +12,6 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -49,7 +46,6 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -273,16 +269,18 @@ public class USBActivity extends Activity {
 
             mURL = readFile(this, mFilePath);
 
-            myWebView.getSettings().setAppCacheMaxSize( 5 * 1024 * 1024 ); // 5MB
-            myWebView.getSettings().setAppCachePath( getApplicationContext().getCacheDir().getAbsolutePath() );
-            myWebView.getSettings().setAllowFileAccess( true );
-            myWebView.getSettings().setAppCacheEnabled( true );
-            myWebView.getSettings().setJavaScriptEnabled( true );
-            myWebView.getSettings().setCacheMode( WebSettings.LOAD_DEFAULT ); // load online by default
+            /*myWebView.getSettings().setAppCacheMaxSize(5 * 1024 * 1024); // 5MB
+            myWebView.getSettings().setAppCachePath(getApplicationContext().getCacheDir().getAbsolutePath());
+            myWebView.getSettings().setAllowFileAccess(true);
+            myWebView.getSettings().setAppCacheEnabled(true);
+            myWebView.getSettings().setJavaScriptEnabled(true);
+            myWebView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT); // load online by default
 
-            if ( !isNetworkAvailable() ) { // loading offline
-                myWebView.getSettings().setCacheMode( WebSettings.LOAD_CACHE_ONLY );    // LOAD_CACHE_ELSE_NETWORK );
-            }
+            // if (!isNetworkAvailable()) { // loading offline
+
+            myWebView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); // LOAD_CACHE_ONLY);
+
+            // }*/
 
             myWebView.loadUrl(mURL);
 
@@ -709,9 +707,13 @@ public class USBActivity extends Activity {
     }
 
     public boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService( CONNECTIVITY_SERVICE );
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+
+            /*ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            return activeNetworkInfo != null && activeNetworkInfo.isConnected();*/
+
+        return true;
+
     }
 
 }
