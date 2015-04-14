@@ -12,8 +12,13 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -23,11 +28,14 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hoho.android.usbserial.driver.UsbSerialPort;
@@ -45,7 +53,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -104,18 +114,36 @@ public class USBActivity extends Activity {
 
     private SerialInputOutputManager mSerialIoManager;
 
-    private String mURL = "http://192.168.15.104:3000/";
+    private String mURL = "";
 
     private String mFilePath = "conn.txt";
 
-    private String mWifiFilePath = "wifi-conn.txt";
-
     public WebView myWebView;
 
-    public WifiManager wifiManager;
+    private String networkSSID = "";
+    private String networkPass = "";
 
-    public String networkSSID;
-    public String networkPass;
+    private String mWifiFilePath = "wifi-conn.txt";
+
+    private WifiManager wifiManager;
+
+    private ImageView mIcoWifi;
+
+    private TextView mSSIDLabel;
+
+    private List<ScanResult> mWifiList;
+
+    private ConnectivityManager mConnManager;
+
+    private NetworkInfo mWifi;
+
+    private boolean mPopupAfterLoad;
+
+    private String mPrevMsg = "";
+
+    private Handler mHandler = new Handler();
+
+    private boolean mDialogOpen = false;
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
 
@@ -205,40 +233,14 @@ public class USBActivity extends Activity {
 
         setContentView(R.layout.activity_usb);
 
-        final View controlsView = findViewById(R.id.fullscreen_content_controls);
-        final View contentView = findViewById(R.id.fullscreen_content);
+        Intent wifi = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
 
-        mBtnClick = (Button) findViewById(R.id.btnClick);
+        startService(wifi);
 
-        mBtnClick.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
+        stopService(wifi);
 
-                if (sPort != null && mConnection != null) {
-
-                    String label = "XXYYZZ";
-
-                    String czas = new SimpleDateFormat("d MMMMM yyyy'r.' HH:mm s's.'").format(new Date());
-                    String command =
-                            "N\n" +
-                                    "B50,180,0,1,2,10,120,N,\"" + label + "\"\n" +
-                                    "A35,30,0,2,2,2,N,\"" + label + "\"\n" +
-                                    "A35,76,0,2,2,2,N,\"" + czas + "\"\n" +
-                                    "P1\n";
-
-                    byte[] data;
-
-                    data = command.getBytes();
-
-                    try {
-                        sPort.write(data, 100);
-                    } catch (IOException e) {
-                        Log.d(this.getClass().getSimpleName(), "Timeout error!");
-                    }
-
-                }
-
-            }
-        });
+        // final View controlsView = findViewById(R.id.fullscreen_content_controls);
+        // final View contentView = findViewById(R.id.fullscreen_content);
 
         myWebView = (WebView) findViewById(R.id.webview);
 
@@ -250,9 +252,19 @@ public class USBActivity extends Activity {
 
         myWebView.setWebViewClient(new WebViewClient() {
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                Toast.makeText(activity, description, Toast.LENGTH_SHORT).show();
 
-                showDialog();
+                if((description.toString().trim().equalsIgnoreCase("the url could not be found.") ||
+                        description.toString().trim().equalsIgnoreCase("the connection to the server timed out.")) &&
+                        mURL.trim().length() > 0){
+
+                    myWebView.loadUrl(mURL);
+
+                } else {
+
+                    showDialog(description);
+
+                }
+
             }
         });
 
@@ -263,32 +275,57 @@ public class USBActivity extends Activity {
             }
         });
 
-        File file = getBaseContext().getFileStreamPath(mFilePath);
+        mSSIDLabel = (TextView) findViewById(R.id.textSSIDLabel);
 
-        if (file.exists()) {
+        mIcoWifi = (ImageView) findViewById(R.id.icoWifi);
 
-            mURL = readFile(this, mFilePath);
+        ((ImageView) mIcoWifi).setImageResource(R.drawable.wifiblack);
 
-            /*myWebView.getSettings().setAppCacheMaxSize(5 * 1024 * 1024); // 5MB
-            myWebView.getSettings().setAppCachePath(getApplicationContext().getCacheDir().getAbsolutePath());
-            myWebView.getSettings().setAllowFileAccess(true);
-            myWebView.getSettings().setAppCacheEnabled(true);
-            myWebView.getSettings().setJavaScriptEnabled(true);
-            myWebView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT); // load online by default
+        wifiManager = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
 
-            // if (!isNetworkAvailable()) { // loading offline
+        wifiManager.setWifiEnabled(true);
 
-            myWebView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); // LOAD_CACHE_ONLY);
+        mConnManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
-            // }*/
+        mHandler.post(wifiRunnable);
 
-            myWebView.loadUrl(mURL);
+        File wfile = getBaseContext().getFileStreamPath(mWifiFilePath);
+
+        if (wfile.exists()) {
+
+            String[] tokens = readFile(this, mWifiFilePath).split("\\|", -1);
+
+            if (tokens.length > 1) {
+
+                networkSSID = tokens[0].trim();
+                networkPass = tokens[1].trim();
+
+                mPopupAfterLoad = false;
+
+                connectToWifi(networkSSID, networkPass);
+
+            } else {
+
+                mPopupAfterLoad = true;
+
+            }
 
         } else {
 
-            showDialog();
+            mPopupAfterLoad = true;
 
         }
+
+        mIcoWifi.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+
+                showOptions();
+
+            }
+
+        });
 
     }
 
@@ -299,6 +336,16 @@ public class USBActivity extends Activity {
     }
 
     public void showDialog() {
+
+        if(mDialogOpen){
+
+            return;
+
+        } else {
+
+            mDialogOpen = true;
+
+        }
 
         // get prompts.xml view
         LayoutInflater li = LayoutInflater.from(USBActivity.this);
@@ -312,6 +359,8 @@ public class USBActivity extends Activity {
 
         final EditText userInput = (EditText) promptsView
                 .findViewById(R.id.editTextDialogUserInput);
+
+        userInput.setText(mURL);
 
         // set dialog message
         alertDialogBuilder
@@ -329,11 +378,81 @@ public class USBActivity extends Activity {
 
                         myWebView.loadUrl(mURL);
 
+                        mDialogOpen = false;
+
+
                     }
                 })
                 .setNegativeButton("Cancel",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
+
+                                mDialogOpen = false;
+
+                                dialog.cancel();
+                            }
+                        });
+
+        // create alert dialog
+        AlertDialog alertDialog = alertDialogBuilder.create();
+
+        // show it
+        alertDialog.show();
+    }
+
+    public void showDialog(String msg) {
+
+        if(mDialogOpen){
+
+            return;
+
+        } else {
+
+            mDialogOpen = true;
+
+        }
+
+        // get prompts.xml view
+        LayoutInflater li = LayoutInflater.from(USBActivity.this);
+        View promptsView = li.inflate(R.layout.prompts, null);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                USBActivity.this);
+
+        // set prompts.xml to alertdialog builder
+        alertDialogBuilder.setView(promptsView);
+
+        final EditText userInput = (EditText) promptsView
+                .findViewById(R.id.editTextDialogUserInput);
+
+        alertDialogBuilder.setTitle(msg);
+
+        // set dialog message
+        alertDialogBuilder
+                .setCancelable(false)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // get user input and set it to
+                        // result
+                        // edit text
+                        mURL = userInput.getText().toString();
+
+                        // File file = getBaseContext().getFileStreamPath(mFilePath);
+
+                        writeFile(USBActivity.this, mFilePath, mURL);
+
+                        myWebView.loadUrl(mURL);
+
+                        mDialogOpen = false;
+
+
+                    }
+                })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                                mDialogOpen = false;
 
                                 dialog.cancel();
                             }
@@ -370,6 +489,9 @@ public class USBActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+
+        mHandler.removeCallbacks(null);
+
         stopIoManager();
         if (sPort != null) {
             try {
@@ -385,6 +507,9 @@ public class USBActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        mHandler.post(wifiRunnable);
+
         Log.d(TAG, "Resumed, port=" + sPort);
         if (sPort == null) {
             // mTitleTextView.setText("No serial device.");
@@ -715,5 +840,258 @@ public class USBActivity extends Activity {
         return true;
 
     }
+
+    void connectToWifi(String ssid, String key) {
+
+        boolean networkSet = false;
+
+        List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
+        for (WifiConfiguration i : list) {
+            if (i.SSID != null && i.SSID.equals("\"" + ssid + "\"")) {
+                wifiManager.disconnect();
+
+                wifiManager.enableNetwork(i.networkId, true);
+
+                wifiManager.reconnect();
+
+                networkSet = true;
+
+                break;
+            }
+        }
+
+        if (!networkSet) {
+
+            WifiConfiguration conf = new WifiConfiguration();
+            conf.SSID = "\"" + ssid + "\"";
+
+            conf.preSharedKey = "\"" + key + "\"";
+
+            wifiManager.addNetwork(conf);
+
+        }
+
+        mSSIDLabel.setText(ssid.replaceAll("\"", ""));
+
+        File file = getBaseContext().getFileStreamPath(mFilePath);
+
+        if (file.exists()) {
+
+            mURL = readFile(this, mFilePath);
+
+            myWebView.loadUrl(mURL);
+
+        }
+
+    }
+
+    void reconnect() {
+
+        Intent wifi = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
+
+        startService(wifi);
+
+        stopService(wifi);
+
+        connectToWifi(networkSSID, networkPass);
+
+    }
+
+    public void showOptions() {
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                USBActivity.this);
+
+        alertDialogBuilder.setTitle("Select Action");
+
+        // set dialog message
+        alertDialogBuilder
+                .setCancelable(false)
+                .setPositiveButton("Reset Wifi", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                        if (mWifiList != null) {
+
+                            showWifiDialog();
+
+                        } else {
+
+                            showMsg("Still initialising networks. Please wait...");
+
+                        }
+
+                    }
+                })
+                .setNeutralButton("Reset Server Link", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                        showDialog();
+
+                    }
+                })
+                .setNegativeButton("Reconnect",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                                reconnect();
+                            }
+                        });
+
+        // create alert dialog
+        AlertDialog alertDialog = alertDialogBuilder.create();
+
+        // show it
+        alertDialog.show();
+    }
+
+    public void showWifiDialog() {
+
+        // get prompts.xml view
+        LayoutInflater li = LayoutInflater.from(USBActivity.this);
+        View promptsView = li.inflate(R.layout.ssid_view, null);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                USBActivity.this);
+
+        // set prompts.xml to alertdialog builder
+        alertDialogBuilder.setView(promptsView);
+
+        final Spinner ssidInput = (Spinner) promptsView
+                .findViewById(R.id.editSSID);
+
+        final EditText ssidKeyInput = (EditText) promptsView
+                .findViewById(R.id.editSSIDKey);
+
+        List<String> list = new ArrayList<String>();
+
+        if (mWifiList != null) {
+            for (int i = 0; i < mWifiList.size(); i++) {
+
+                list.add(mWifiList.get(i).SSID.replaceAll("\"", ""));
+
+            }
+        }
+
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, list);
+
+        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        ssidInput.setAdapter(dataAdapter);
+
+        // set dialog message
+        alertDialogBuilder
+                .setCancelable(false)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                        networkSSID = ssidInput.getSelectedItem().toString();
+
+                        networkPass = ssidKeyInput.getText().toString();
+
+                        WifiConfiguration conf = new WifiConfiguration();
+                        conf.SSID = "\"" + networkSSID + "\"";
+
+                        conf.preSharedKey = "\"" + networkPass + "\"";
+
+                        wifiManager.addNetwork(conf);
+
+                        writeFile(USBActivity.this, mWifiFilePath, networkSSID + "|" + networkPass);
+
+                        connectToWifi(networkSSID, networkPass);
+
+                    }
+                })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                                dialog.cancel();
+                            }
+                        });
+
+        // create alert dialog
+        AlertDialog alertDialog = alertDialogBuilder.create();
+
+        // show it
+        alertDialog.show();
+    }
+
+    public void showMsg(String msg) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(USBActivity.this);
+        builder.setCancelable(true);
+        builder.setTitle(msg);
+        builder.setInverseBackgroundForced(true);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    Runnable wifiRunnable = new Runnable() {
+        @Override
+        public void run() {
+            List<ScanResult> results = wifiManager.getScanResults();
+
+            mWifi = mConnManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+            if (mWifi.getDetailedState().toString().toLowerCase().trim() != "connected" && mPrevMsg.trim() != mWifi.getDetailedState().toString().trim()) {
+
+                mPrevMsg = mWifi.getDetailedState().toString().trim();
+
+                Toast.makeText(USBActivity.this, mWifi.getDetailedState().toString(), Toast.LENGTH_SHORT).show();
+
+            } else if (mWifi.getDetailedState().toString().toLowerCase().trim() == "connected") {
+
+                mPrevMsg = mWifi.getDetailedState().toString().trim();
+
+            }
+
+            // Log.i("INFO", mWifi.getDetailedState().toString());
+
+            if (mWifi.isConnected() && networkSSID.trim().length() > 0 && networkPass.trim().length() > 0) {
+
+                ((ImageView) mIcoWifi).setImageResource(R.drawable.wifigreen);
+
+                if(mURL.trim().length() == 0){
+
+                    showDialog();
+
+                }
+
+            } else {
+
+                reconnect();
+
+                ((ImageView) mIcoWifi).setImageResource(R.drawable.wifired);
+
+            }
+
+            if (results == null) {
+
+                mHandler.postDelayed(this, 3000);
+                return;
+            }
+
+            mWifiList = results;
+
+            if (mPopupAfterLoad) {
+
+                mPopupAfterLoad = false;
+
+                showWifiDialog();
+
+            }
+
+
+            mHandler.postDelayed(this, 3000);
+
+        }
+    };
 
 }

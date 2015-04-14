@@ -11,5 +11,8 @@
     <string name="title_activity_shortcut">shortcut</string>
     <string name="hello_world">Hello world!</string>
     <string name="title_activity_remove_shortcut">RemoveShortcut</string>
+    <string name="ssid">Network SSID</string>
+    <string name="ssidkey">Network Password</string>
+    <string name="offline">Offline</string>
 
 </resources>

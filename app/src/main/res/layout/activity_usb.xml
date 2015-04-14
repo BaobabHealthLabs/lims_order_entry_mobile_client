@@ -1,45 +1,55 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent" android:background="#0099cc" tools:context=".USBActivity">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0099cc"
+    tools:context=".USBActivity">
 
     <!-- The primary full-screen view. This can be replaced with whatever view
          is needed to present your content, e.g. VideoView, SurfaceView,
          TextureView, etc. -->
-    <TextView android:id="@+id/fullscreen_content" android:layout_width="match_parent"
-        android:layout_height="match_parent" android:keepScreenOn="false" android:textColor="#33b5e5"
-        android:textStyle="bold" android:textSize="50sp" android:gravity="center"
-        android:text="@string/dummy_content" />
-
 
     <WebView
         android:id="@+id/webview"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent" />
 
-    <!-- This FrameLayout insets its children based on system windows using
-         android:fitsSystemWindows. -->
-    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent"
+    <FrameLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
         android:fitsSystemWindows="true">
 
-        <LinearLayout android:id="@+id/fullscreen_content_controls" style="?metaButtonBarStyle"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center_horizontal"
-            android:background="@color/black_overlay" android:orientation="horizontal"
-            tools:ignore="UselessParent">
-
-        </LinearLayout>
-
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Click"
-            android:id="@+id/btnClick"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
+        <ImageView
+            android:id="@+id/icoWifi"
+            android:layout_width="50dip"
+            android:layout_height="45dip"
             android:layout_alignParentEnd="true"
-            android:layout_gravity="right|bottom"
-            android:visibility="gone" />
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:adjustViewBounds="true"
+            android:scaleType="centerCrop"
+            android:src="@drawable/wifiblack"
+            android:layout_gravity="right|top"
+            android:paddingLeft="5dip"
+            android:paddingRight="5dip"
+            android:padding="5dip"
+            android:paddingTop="8dip"
+            android:paddingBottom="8dip"
+            android:layout_marginRight="2dip"
+            android:layout_marginTop="2dip" />
+
+        <TextView
+            android:id="@+id/textSSIDLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:layout_alignEnd="@+id/icoWifi"
+            android:layout_alignRight="@+id/icoWifi"
+            android:layout_below="@+id/icoWifi"
+            android:text="@string/offline"
+            android:layout_gravity="center_horizontal|bottom"
+            android:textAlignment="center"
+            android:textColor="#cc666666" />
+
     </FrameLayout>
 
 </FrameLayout>
