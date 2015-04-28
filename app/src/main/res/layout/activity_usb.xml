@@ -9,10 +9,15 @@
          is needed to present your content, e.g. VideoView, SurfaceView,
          TextureView, etc. -->
 
-    <WebView
+    <!--WebView
         android:id="@+id/webview"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent" />
+        android:layout_height="fill_parent" /-->
+
+    <FrameLayout
+        android:id="@+id/web_container"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"/>
 
     <FrameLayout
         android:layout_width="fill_parent"

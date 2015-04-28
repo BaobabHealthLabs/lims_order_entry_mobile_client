@@ -327,10 +327,10 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
-    public boolean isNetworkAvailable() {
-        boolean bStatus = mParent.isNetworkAvailable();
+    public void changeOrientation(String orientation) {
 
-        return bStatus;
+        mParent.changeOrientation(orientation);
+
     }
 
 }

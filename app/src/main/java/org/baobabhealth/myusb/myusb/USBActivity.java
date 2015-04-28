@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
@@ -17,6 +18,7 @@ import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -33,6 +35,7 @@ import android.webkit.WebViewClient;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -52,9 +55,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,38 +68,10 @@ import java.util.concurrent.Executors;
  * @see SystemUiHider
  */
 public class USBActivity extends Activity {
-    /**
-     * Whether or not the system UI should be auto-hidden after
-     * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
-     */
 
     private final String TAG = USBActivity.class.getSimpleName();
 
     private static UsbSerialPort sPort = null;
-
-    private static final boolean AUTO_HIDE = true;
-
-    /**
-     * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
-     * user interaction before hiding the system UI.
-     */
-    private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
-
-    /**
-     * If set, will toggle the system UI visibility upon interaction. Otherwise,
-     * will show the system UI visibility upon interaction.
-     */
-    private static final boolean TOGGLE_ON_CLICK = true;
-
-    /**
-     * The flags to pass to {@link SystemUiHider#getInstance}.
-     */
-    private static final int HIDER_FLAGS = SystemUiHider.FLAG_HIDE_NAVIGATION;
-
-    /**
-     * The instance of the {@link SystemUiHider} for this activity.
-     */
-    private SystemUiHider mSystemUiHider;
 
     private UsbDevice mDevice;
     private Byte[] bytes;
@@ -106,7 +79,6 @@ public class USBActivity extends Activity {
     private boolean forceClaim = true;
     private UsbManager mUsbManager;
     private UsbInterface mIntf;
-    private Button mBtnClick;
 
     private UsbDeviceConnection mConnection;
 
@@ -145,6 +117,10 @@ public class USBActivity extends Activity {
 
     private boolean mDialogOpen = false;
 
+    private String appWebViewTempUrl = "";
+
+    private FrameLayout mWebContainer;
+
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
 
         public void onReceive(Context context, Intent intent) {
@@ -161,21 +137,6 @@ public class USBActivity extends Activity {
                             mConnection = mUsbManager.openDevice(mDevice);
                             mConnection.claimInterface(mIntf, forceClaim);
 
-                            String label = "XYZ123";
-
-                            String command =
-                                    "N\n" +
-                                            "A50,50,0,2,2,2,N,\"" + label + "\"\n" +
-                                            "B50,100,0,1,2,2,170,B,\"" + label + "\"\n" +
-                                            "A50,310,0,3,1,1,N,\"" + label + "\"\n" +
-                                            "P1\n";
-
-                            byte[] data;
-                            // data = command.getBytes(StandardCharsets.US_ASCII);
-
-                            data = command.getBytes();
-
-                            mConnection.bulkTransfer(endpoint, data, data.length, TIMEOUT);
                         }
                     } else {
                         Log.d("INFO", "permission denied for device " + mDevice);
@@ -239,23 +200,42 @@ public class USBActivity extends Activity {
 
         stopService(wifi);
 
-        // final View controlsView = findViewById(R.id.fullscreen_content_controls);
-        // final View contentView = findViewById(R.id.fullscreen_content);
+        wifi = null;
 
-        myWebView = (WebView) findViewById(R.id.webview);
+        mWebContainer = (FrameLayout) findViewById(R.id.web_container);
+
+        myWebView = new WebView(getApplicationContext());
+
+        mWebContainer.addView(myWebView);
+
+        // myWebView = (WebView) findViewById(R.id.webview);
 
         myWebView.getSettings().setJavaScriptEnabled(true); // enable javascript
 
         myWebView.addJavascriptInterface(new WebAppInterface(this, this), "Android");
 
-        final Activity activity = USBActivity.this;
+        myWebView.clearCache(true);
+
+        myWebView.getSettings().setSaveFormData(false);
+
+        if (Build.VERSION.SDK_INT <= 18) {
+            myWebView.getSettings().setSavePassword(false);
+        } else {
+            // do nothing. because as google mentioned in the documentation -
+            // "Saving passwords in WebView will not be supported in future versions"
+        }
+
+        // this.deleteDatabase("webview.db");
+        // this.deleteDatabase("webviewCache.db");
+
+        myWebView.clearHistory();
 
         myWebView.setWebViewClient(new WebViewClient() {
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
 
-                if((description.toString().trim().equalsIgnoreCase("the url could not be found.") ||
+                if ((description.toString().trim().equalsIgnoreCase("the url could not be found.") ||
                         description.toString().trim().equalsIgnoreCase("the connection to the server timed out.")) &&
-                        mURL.trim().length() > 0){
+                        mURL.trim().length() > 0) {
 
                     myWebView.loadUrl(mURL);
 
@@ -266,7 +246,21 @@ public class USBActivity extends Activity {
                 }
 
             }
+
+            public void onPageFinished(WebView view, String url) {
+                appWebViewTempUrl = url;
+            }
         });
+
+        // myWebView
+
+        myWebView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                return true;
+            }
+        });
+        myWebView.setLongClickable(false);
 
         myWebView.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
@@ -310,11 +304,15 @@ public class USBActivity extends Activity {
 
             }
 
+            tokens = null;
+
         } else {
 
             mPopupAfterLoad = true;
 
         }
+
+        wfile = null;
 
         mIcoWifi.setOnClickListener(new View.OnClickListener() {
 
@@ -337,7 +335,7 @@ public class USBActivity extends Activity {
 
     public void showDialog() {
 
-        if(mDialogOpen){
+        if (mDialogOpen) {
 
             return;
 
@@ -380,6 +378,9 @@ public class USBActivity extends Activity {
 
                         mDialogOpen = false;
 
+                        dialog.dismiss();
+
+                        dialog = null;
 
                     }
                 })
@@ -389,7 +390,10 @@ public class USBActivity extends Activity {
 
                                 mDialogOpen = false;
 
-                                dialog.cancel();
+                                dialog.dismiss();
+
+                                dialog = null;
+
                             }
                         });
 
@@ -402,7 +406,7 @@ public class USBActivity extends Activity {
 
     public void showDialog(String msg) {
 
-        if(mDialogOpen){
+        if (mDialogOpen) {
 
             return;
 
@@ -445,7 +449,9 @@ public class USBActivity extends Activity {
 
                         mDialogOpen = false;
 
+                        dialog.dismiss();
 
+                        dialog = null;
                     }
                 })
                 .setNegativeButton("Cancel",
@@ -501,6 +507,58 @@ public class USBActivity extends Activity {
             }
             sPort = null;
         }
+
+        appWebViewTempUrl = myWebView.getUrl();
+        // myWebView.loadUrl("file:///android_asset/infAppPaused.html");
+
+        sPort = null;
+
+        mDevice = null;
+
+        bytes = null;
+
+        TIMEOUT = 0;
+
+        forceClaim = true;
+
+        mUsbManager = null;
+
+        mIntf = null;
+
+        mConnection = null;
+
+        mSerialIoManager = null;
+
+        mURL = null;
+
+        mFilePath = null;
+
+        networkSSID = null;
+
+        networkPass = null;
+
+        mWifiFilePath = null;
+
+        wifiManager = null;
+
+        mIcoWifi = null;
+
+        mSSIDLabel = null;
+
+        mWifiList = null;
+
+        mConnManager = null;
+
+        mWifi = null;
+
+        mPrevMsg = null;
+
+        mHandler = null;
+
+        mDialogOpen = false;
+
+        appWebViewTempUrl = null;
+
         finish();
     }
 
@@ -538,6 +596,11 @@ public class USBActivity extends Activity {
             }
             // mTitleTextView.setText("Serial device: " + sPort.getClass().getSimpleName());
         }
+
+        if (!appWebViewTempUrl.equals("") && appWebViewTempUrl != null) {
+            myWebView.loadUrl(appWebViewTempUrl);
+        }
+
         onDeviceStateChange();
     }
 
@@ -604,21 +667,6 @@ public class USBActivity extends Activity {
 
         }
 
-        /*
-        "\nN\n" +
-                                "q456\n" +
-                                "Q151,025\n" +
-                                "ZT\n" +
-                                "A20,3,0,3,1,1,N,\"" + identifier + "\"\n" +
-                                "A221,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
-                                "A20,33,0,3,1,1,N,\"" + name + "\"\n" +
-                                "A20,60,0,3,1,1,R,\"Test:\"\n" +
-                                "A110,60,0,3,1,1,N,\"" + test + "\"\n" +
-                                "A20,91,0,3,1,1,R,\"Result:\"\n" +
-                                "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
-                                "P1\n";
-         */
-
         if (sPort != null) {
 
             String command =
@@ -642,14 +690,15 @@ public class USBActivity extends Activity {
 
                 sPort.write(data, 100);
 
-                // Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
-
             } catch (IOException e) {
 
-                // Toast.makeText(USBActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-
                 Log.d(this.getClass().getSimpleName(), "Timeout error!");
+
             }
+
+            command = null;
+
+            data = null;
 
         }
 
@@ -662,21 +711,6 @@ public class USBActivity extends Activity {
             DeviceListActivity.show(this);
 
         }
-
-        /*
-        "\nN\n" +
-                                "q456\n" +
-                                "Q151,025\n" +
-                                "ZT\n" +
-                                "A20,3,0,3,1,1,N,\"" + identifier + "\"\n" +
-                                "A221,3,0,3,1,1,N,\"" + messageDatetime + "\"\n" +
-                                "A20,33,0,3,1,1,N,\"" + name + "\"\n" +
-                                "A20,60,0,3,1,1,R,\"Test:\"\n" +
-                                "A110,60,0,3,1,1,N,\"" + test + "\"\n" +
-                                "A20,91,0,3,1,1,R,\"Result:\"\n" +
-                                "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
-                                "P1\n";
-         */
 
         if (sPort != null) {
 
@@ -701,14 +735,15 @@ public class USBActivity extends Activity {
 
                 sPort.write(data, 100);
 
-                // Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
-
             } catch (IOException e) {
 
-                // Toast.makeText(USBActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-
                 Log.d(this.getClass().getSimpleName(), "Timeout error!");
+
             }
+
+            command = null;
+
+            data = null;
 
         }
 
@@ -793,8 +828,42 @@ public class USBActivity extends Activity {
                 String test = tokens[1];
                 String result = tokens[2];
 
+                List<String> resultParts = new ArrayList<String>();
+
+                if (result.trim().length() > 23) {
+
+                    resultParts.add(result.substring(0, 23));
+
+                    Double d = Math.ceil((result.trim().length() - 23) / 31);
+
+                    int lines = d.intValue() + (((result.trim().length() - 23) % 31) > 0 ? 1 : 0);
+
+                    for (int j = 0; j < lines; j++) {
+
+                        String line = "";
+
+                        if (result.trim().length() - (23 + (31 * j)) < 31) {
+
+                            line = result.substring(23 + (31 * j), (23 + (31 * j) + result.trim().length() - (23 + (31 * j))));
+
+                        } else {
+
+                            line = result.substring(23 + (31 * j), (23 + (31 * j) + 31));
+
+                        }
+
+                        resultParts.add(line);
+
+                    }
+
+                } else {
+
+                    resultParts.add(result);
+
+                }
+
                 command +=
-                        "\nN\n" +
+                        "\n\nN\n" +
                                 "q456\n" +
                                 "Q151,025\n" +
                                 "ZT\n" +
@@ -804,9 +873,51 @@ public class USBActivity extends Activity {
                                 "A20,60,0,3,1,1,R,\"Test:\"\n" +
                                 "A110,60,0,3,1,1,N,\"" + test + "\"\n" +
                                 "A20,91,0,3,1,1,R,\"Result:\"\n" +
-                                "A40,119,0,3,1,1,N,\"" + result + "\"\n" +
-                                "P1\n";
+                                "A125,91,0,3,1,1,N,\"" + resultParts.get(0).toString() + (resultParts.size() > 1 &&
+                                resultParts.get(0).toString().substring(resultParts.get(0).toString().length() - 1).trim().length() != 0 ? "-" : "") + "\"\n" +
+                                "A20,119,0,3,1,1,N,\"" + (resultParts.size() > 1 ? resultParts.get(1).toString() : "") + (resultParts.size() > 2 &&
+                                resultParts.get(1).toString().substring(resultParts.get(1).toString().length() - 1).trim().length() != 0 ? "-" : "") + "\"\n" +
+                                "P1\n\n";
 
+                if (resultParts.size() > 2) {
+
+                    command +=
+                            "\n\nN\n" +
+                                    "q456\n" +
+                                    "Q151,025\n" +
+                                    "ZT\n";
+
+                    int l = 0;
+
+                    for (int k = 2; k < resultParts.size(); k++) {
+
+                        command +=
+                                "A20," + (3 + (l * 30)) + ",0,3,1,1,N,\"" + resultParts.get(k).toString() + (resultParts.size() > (k + 1) &&
+                                        resultParts.get(k).toString().substring(resultParts.get(k).toString().length() - 1).trim().length() != 0 ? "-" : "") + "\"\n";
+
+                        l++;
+
+                        if (l > 3) {
+
+                            l = 0;
+
+                            command += "P1\n\n" +
+                                    "\nN\n" +
+                                    "q456\n" +
+                                    "Q151,025\n" +
+                                    "ZT\n";
+
+                        }
+
+                    }
+
+                    command += "P1\n\n";
+
+                }
+
+                messageDatetime = null;
+                test = null;
+                result = null;
 
             }
 
@@ -816,28 +927,19 @@ public class USBActivity extends Activity {
 
             try {
 
-                sPort.write(data, data.length + 100);
-
-                // Toast.makeText(USBActivity.this, command, Toast.LENGTH_SHORT).show();
+                sPort.write(data, data.length * 1000);
 
             } catch (IOException e) {
 
-                // Toast.makeText(USBActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+                Log.d(this.getClass().getSimpleName(), e.toString());
 
-                Log.d(this.getClass().getSimpleName(), "Timeout error!");
             }
 
+            command = null;
+
+            data = null;
+
         }
-
-    }
-
-    public boolean isNetworkAvailable() {
-
-            /*ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-            NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-            return activeNetworkInfo != null && activeNetworkInfo.isConnected();*/
-
-        return true;
 
     }
 
@@ -879,6 +981,12 @@ public class USBActivity extends Activity {
 
             mURL = readFile(this, mFilePath);
 
+            if (!appWebViewTempUrl.equals("")) {
+
+                mURL = appWebViewTempUrl;
+
+            }
+
             myWebView.loadUrl(mURL);
 
         }
@@ -914,9 +1022,17 @@ public class USBActivity extends Activity {
 
                             showWifiDialog();
 
+                            dialog.dismiss();
+
+                            dialog = null;
+
                         } else {
 
                             showMsg("Still initialising networks. Please wait...");
+
+                            dialog.dismiss();
+
+                            dialog = null;
 
                         }
 
@@ -927,6 +1043,10 @@ public class USBActivity extends Activity {
 
                         showDialog();
 
+                        dialog.dismiss();
+
+                        dialog = null;
+
                     }
                 })
                 .setNegativeButton("Reconnect",
@@ -934,6 +1054,11 @@ public class USBActivity extends Activity {
                             public void onClick(DialogInterface dialog, int id) {
 
                                 reconnect();
+
+                                dialog.dismiss();
+
+                                dialog = null;
+
                             }
                         });
 
@@ -1000,13 +1125,20 @@ public class USBActivity extends Activity {
 
                         connectToWifi(networkSSID, networkPass);
 
+                        dialog.dismiss();
+
+                        dialog = null;
+
                     }
                 })
                 .setNegativeButton("Cancel",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
 
-                                dialog.cancel();
+                                dialog.dismiss();
+
+                                dialog = null;
+
                             }
                         });
 
@@ -1026,6 +1158,8 @@ public class USBActivity extends Activity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
+
+                dialog = null;
             }
         });
 
@@ -1058,7 +1192,7 @@ public class USBActivity extends Activity {
 
                 ((ImageView) mIcoWifi).setImageResource(R.drawable.wifigreen);
 
-                if(mURL.trim().length() == 0){
+                if (mURL.trim().length() == 0) {
 
                     showDialog();
 
@@ -1093,5 +1227,79 @@ public class USBActivity extends Activity {
 
         }
     };
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        sPort = null;
+
+        mDevice = null;
+
+        bytes = null;
+
+        TIMEOUT = 0;
+
+        forceClaim = true;
+
+        mUsbManager = null;
+
+        mIntf = null;
+
+        mConnection = null;
+
+        mSerialIoManager = null;
+
+        mURL = null;
+
+        mFilePath = null;
+
+        networkSSID = null;
+
+        networkPass = null;
+
+        mWifiFilePath = null;
+
+        wifiManager = null;
+
+        mIcoWifi = null;
+
+        mSSIDLabel = null;
+
+        mWifiList = null;
+
+        mConnManager = null;
+
+        mWifi = null;
+
+        mPrevMsg = null;
+
+        mHandler = null;
+
+        mDialogOpen = false;
+
+        appWebViewTempUrl = null;
+
+        mWebContainer.removeAllViews();
+
+        myWebView.destroy();
+
+    }
+
+    public void changeOrientation(String orientation) {
+
+        Log.i("INFO", "Got " + orientation);
+
+        if (orientation.equalsIgnoreCase("landscape")) {
+
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+        } else if (orientation.equalsIgnoreCase("portrait")) {
+
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        }
+
+    }
 
 }
