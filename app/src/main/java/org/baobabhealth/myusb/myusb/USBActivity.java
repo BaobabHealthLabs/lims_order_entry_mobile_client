@@ -41,7 +41,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.HexDump;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
@@ -194,6 +196,8 @@ public class USBActivity extends Activity {
 
         setContentView(R.layout.activity_usb);
 
+        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
         Intent wifi = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
 
         startService(wifi);
@@ -233,22 +237,36 @@ public class USBActivity extends Activity {
         myWebView.setWebViewClient(new WebViewClient() {
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
 
-                if ((description.toString().trim().equalsIgnoreCase("the url could not be found.") ||
-                        description.toString().trim().equalsIgnoreCase("the connection to the server timed out.")) &&
-                        mURL.trim().length() > 0) {
+                try {
+                    if ((description.toString().trim().equalsIgnoreCase("the url could not be found.") ||
+                            description.toString().trim().equalsIgnoreCase("the connection to the server timed out.")) &&
+                            mURL.trim().length() > 0) {
 
-                    myWebView.loadUrl(mURL);
+                        hideErrorPage(myWebView, mURL.trim());
 
-                } else {
+                    } else {
 
-                    showDialog(description);
+                        hideErrorPage(myWebView, "");
 
+                        showDialog(description);
+
+                    }
+                } catch (Exception e){
+                    Log.d("ERROR", e.toString());
                 }
 
             }
 
             public void onPageFinished(WebView view, String url) {
-                appWebViewTempUrl = url;
+
+                Log.i("INFO", "$$$ " + url.startsWith("data"));
+
+                if(!url.startsWith("data")) {
+
+                    appWebViewTempUrl = url;
+
+                }
+
             }
         });
 
@@ -324,6 +342,24 @@ public class USBActivity extends Activity {
             }
 
         });
+
+    }
+
+    private void hideErrorPage(WebView view, String url) {
+
+        if(url.trim().length() == 0){
+
+            String customErrorPageHtml = "<html><body><center><h1 style='margin-top: 40px; color: #23538a;'>Page Not " +
+                    "Available or Set!</h1></center></html>";
+            view.loadData(customErrorPageHtml, "text/html", null);
+
+        } else {
+
+            String customErrorPageHtml = "<html><body><center><h2 style='margin-top: 40px; color: #23538a;'>Loading. " +
+                    "Please wait...</h2></center><script>setTimeout(function(){window.location = '" + url + "';}, 500);</script></html>";
+            view.loadData(customErrorPageHtml, "text/html", null);
+
+        }
 
     }
 
@@ -508,7 +544,19 @@ public class USBActivity extends Activity {
             sPort = null;
         }
 
-        appWebViewTempUrl = myWebView.getUrl();
+        try {
+
+            if (!myWebView.getUrl().startsWith("data")) {
+
+                appWebViewTempUrl = myWebView.getUrl();
+
+            }
+
+        } catch(Exception e){
+
+            Log.d("ERROR", e.toString());
+
+        }
         // myWebView.loadUrl("file:///android_asset/infAppPaused.html");
 
         sPort = null;
@@ -598,7 +646,9 @@ public class USBActivity extends Activity {
         }
 
         if (!appWebViewTempUrl.equals("") && appWebViewTempUrl != null) {
+
             myWebView.loadUrl(appWebViewTempUrl);
+
         }
 
         onDeviceStateChange();
@@ -663,7 +713,11 @@ public class USBActivity extends Activity {
 
         if (sPort == null) {
 
-            DeviceListActivity.show(this);
+            // DeviceListActivity.show(this);
+
+            checkPrinterSettings();
+
+            return;
 
         }
 
@@ -708,7 +762,11 @@ public class USBActivity extends Activity {
 
         if (sPort == null) {
 
-            DeviceListActivity.show(this);
+            // DeviceListActivity.show(this);
+
+            checkPrinterSettings();
+
+            return;
 
         }
 
@@ -803,7 +861,11 @@ public class USBActivity extends Activity {
 
         if (sPort == null) {
 
-            DeviceListActivity.show(this);
+            // DeviceListActivity.show(this);
+
+            checkPrinterSettings();
+
+            return;
 
         }
 
@@ -986,6 +1048,8 @@ public class USBActivity extends Activity {
                 mURL = appWebViewTempUrl;
 
             }
+
+            Log.i("INFO", "$$$ " + appWebViewTempUrl);
 
             myWebView.loadUrl(mURL);
 
@@ -1297,6 +1361,48 @@ public class USBActivity extends Activity {
         } else if (orientation.equalsIgnoreCase("portrait")) {
 
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        }
+
+    }
+
+    public void checkPrinterSettings(){
+
+        final List<UsbSerialDriver> drivers =
+                UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
+
+        if(drivers.size() == 1) {
+
+            UsbSerialPort port = drivers.get(0).getPorts().get(0);
+
+            sPort = port;
+
+            final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+            mConnection = usbManager.openDevice(sPort.getDriver().getDevice());
+            if (mConnection == null) {
+                // mTitleTextView.setText("Opening device failed");
+                return;
+            }
+
+            try {
+                sPort.open(mConnection);
+                sPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+            } catch (IOException e) {
+                Log.e(TAG, "Error setting up device: " + e.getMessage(), e);
+                // mTitleTextView.setText("Error opening device: " + e.getMessage());
+                try {
+                    sPort.close();
+                } catch (IOException e2) {
+                    // Ignore.
+                }
+                sPort = null;
+                return;
+            }
+
+        } else {
+
+            DeviceListActivity.show(this);
 
         }
 
