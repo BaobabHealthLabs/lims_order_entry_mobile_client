@@ -314,7 +314,7 @@ public class USBActivity extends Activity {
 
                 mPopupAfterLoad = false;
 
-                connectToWifi(networkSSID, networkPass);
+                connectToWifi(networkSSID.trim(), networkPass.trim());
 
             } else {
 
@@ -1014,7 +1014,7 @@ public class USBActivity extends Activity {
             if (i.SSID != null && i.SSID.equals("\"" + ssid + "\"")) {
                 wifiManager.disconnect();
 
-                wifiManager.enableNetwork(i.networkId, true);
+                wifiManager.enableNetwork(i.networkId, false);
 
                 wifiManager.reconnect();
 
@@ -1065,7 +1065,7 @@ public class USBActivity extends Activity {
 
         stopService(wifi);
 
-        connectToWifi(networkSSID, networkPass);
+        connectToWifi(networkSSID.trim(), networkPass.trim());
 
     }
 
@@ -1174,20 +1174,20 @@ public class USBActivity extends Activity {
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
 
-                        networkSSID = ssidInput.getSelectedItem().toString();
+                        networkSSID = ssidInput.getSelectedItem().toString().trim();
 
-                        networkPass = ssidKeyInput.getText().toString();
+                        networkPass = ssidKeyInput.getText().toString().trim();
 
                         WifiConfiguration conf = new WifiConfiguration();
-                        conf.SSID = "\"" + networkSSID + "\"";
+                        conf.SSID = "\"" + networkSSID.trim() + "\"";
 
                         conf.preSharedKey = "\"" + networkPass + "\"";
 
                         wifiManager.addNetwork(conf);
 
-                        writeFile(USBActivity.this, mWifiFilePath, networkSSID + "|" + networkPass);
+                        writeFile(USBActivity.this, mWifiFilePath, networkSSID.trim() + "|" + networkPass);
 
-                        connectToWifi(networkSSID, networkPass);
+                        connectToWifi(networkSSID.trim(), networkPass);
 
                         dialog.dismiss();
 
